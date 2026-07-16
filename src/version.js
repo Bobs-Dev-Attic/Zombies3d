@@ -1,7 +1,15 @@
 // Central version + changelog source. Update this on every release.
-export const VERSION = "0.1.0";
+export const VERSION = "0.1.1";
 
 export const CHANGELOG = [
+  {
+    version: "0.1.1",
+    date: "2026-07-16",
+    title: "Straighten Up",
+    changes: [
+      "Fixed reversed movement — the player's facing vector didn't match the camera, so once you turned, WASD/arrow controls inverted (forward drove back, left strafed right). Movement now tracks exactly where you're looking at every angle. Melee swings now land where you aim, too.",
+    ],
+  },
   {
     version: "0.1.0",
     date: "2026-07-16",

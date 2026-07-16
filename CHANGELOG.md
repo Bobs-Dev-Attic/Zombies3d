@@ -4,6 +4,13 @@ All notable changes to **Zombies 3D: Escape the Horde**. The in-game
 **Menu → Changelog** is generated from [`src/version.js`](./src/version.js);
 keep the two in sync.
 
+## v0.1.1 — Straighten Up (2026-07-16)
+
+- Fixed reversed movement — the player's facing vector didn't match the camera,
+  so once you turned, WASD/arrow controls inverted (forward drove back, left
+  strafed right). Movement now tracks exactly where you're looking at every
+  angle. Melee swings land where you aim, too.
+
 ## v0.1.0 — Into the Third Dimension (2026-07-16)
 
 - A ground-up 3D remake of *Zombies: Escape the Horde* — now a first-person

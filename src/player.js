@@ -34,8 +34,9 @@ export class Player {
 
   get position() { return new THREE.Vector3(this.x, EYE, this.z); }
 
-  // Unit facing vector on the ground plane.
-  forward() { return { x: Math.sin(this.yaw), z: Math.cos(this.yaw) * -1 }; }
+  // Unit facing vector on the ground plane, matching the camera's look
+  // direction (camera looks down local -Z rotated by yaw about +Y).
+  forward() { return { x: -Math.sin(this.yaw), z: -Math.cos(this.yaw) }; }
 
   applyLook(dx, dy) {
     this.yaw -= dx * LOOK_SENS;
