@@ -61,8 +61,9 @@ export class SFX {
     this._ensure();
     if (!this.ctx) return;
     const t = this.ctx.currentTime;
-    // Throttle ambient/voice sounds so overlapping enemies don't blare.
-    if ((name === "groan" || name === "hiss" || name === "step") && this._last[name] && t - this._last[name] < 0.2) return;
+    // Throttle ambient/voice/repeated sounds so they don't blare.
+    const throttle = { groan: 0.2, hiss: 0.2, step: 0.2, shell: 0.05 };
+    if (throttle[name] && this._last[name] && t - this._last[name] < throttle[name]) return;
     this._last[name] = t;
     switch (name) {
       // --- gunshots (weapon.sound strings) ---
@@ -80,6 +81,7 @@ export class SFX {
       case "heal":   this._tone("sine", 520, 900, 0.2, 0.22, t); break;
       case "reload": this._tone("square", 200, null, 0.03, 0.18, t); this._noise(0.05, 0.14, t + 0.07, "bandpass", 2000, 2, null); break;
       case "click":  this._noise(0.03, 0.14, t, "highpass", 3000, 1, null); break;
+      case "shell":  this._tone("triangle", 2400 + Math.random() * 900, 1500, 0.045, 0.06, t); this._noise(0.03, 0.05, t, "highpass", 5200, 1, null); break; // brass tink
       case "ui":     this._tone("square", 440, 660, 0.08, 0.2, t); break;
       case "wave":   this._tone("sawtooth", 160, 320, 0.5, 0.16, t); this._tone("sine", 320, 480, 0.5, 0.12, t + 0.05); break;
       case "clear":  this._tone("square", 523, 784, 0.14, 0.2, t); this._tone("square", 784, 1046, 0.2, 0.2, t + 0.12); break;
