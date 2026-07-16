@@ -1,0 +1,13 @@
+{
+  "name": "Zombies 3D: Escape the Horde",
+  "short_name": "Zombies 3D",
+  "description": "A first-person 3D zombie survival shooter.",
+  "start_url": "./",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#0b0d0a",
+  "theme_color": "#0b0d0a",
+  "icons": [
+    { "src": "./icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
