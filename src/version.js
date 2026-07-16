@@ -1,7 +1,18 @@
 // Central version + changelog source. Update this on every release.
-export const VERSION = "0.2.0";
+export const VERSION = "0.3.0";
 
 export const CHANGELOG = [
+  {
+    version: "0.3.0",
+    date: "2026-07-16",
+    title: "The Ragged Horde",
+    changes: [
+      "Animated reloads — the magazine drops from the grip and tumbles to the floor with a thud, the slide racks back and forward, and a circular reload-cycle indicator fills below the crosshair while you're vulnerable.",
+      "Fixed zombies facing the wrong way — they now turn to face and lurch straight at you as they close in.",
+      "No two zombies are alike: they vary in height and girth, hunch and head-tilt, some are missing an eye or hang their jaw, and many have their guts spilling from a torn belly.",
+      "Varied gaits — different stride lengths, arm swings and limps; some drag a mangled leg, and the legless haul themselves across the ground with their arms.",
+    ],
+  },
   {
     version: "0.2.0",
     date: "2026-07-16",

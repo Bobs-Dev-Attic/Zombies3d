@@ -265,8 +265,28 @@ export class Game {
     const reserve = this.loadout.ammo[wp.ammoType] || 0;
     if (clip >= wp.clip || reserve <= 0) return;
     this.reloading = wp.reload;
+    this._reloadTotal = wp.reload;
     this.sfx.play("reload");
+    this._dropMagazine();
     this._emitStats();
+  }
+
+  // A spent magazine tumbles from the grip and thuds on the floor.
+  _dropMagazine() {
+    this.camera.getWorldDirection(this._camDir);
+    const up = new THREE.Vector3(0, 1, 0);
+    const origin = this.player.position.addScaledVector(this._camDir, 0.35).addScaledVector(up, -0.5);
+    this._magGeo = this._magGeo || new THREE.BoxGeometry(0.06, 0.16, 0.07);
+    this._magMat = this._magMat || new THREE.MeshStandardMaterial({ color: 0x14171a, roughness: 0.7, metalness: 0.3 });
+    const mesh = new THREE.Mesh(this._magGeo, this._magMat);
+    mesh.position.copy(origin);
+    mesh.rotation.set(rand(0, 3), rand(0, 3), rand(0, 3));
+    this.fxGroup.add(mesh);
+    this.shells.push({
+      mesh, x: origin.x, y: origin.y, z: origin.z,
+      vx: this._camDir.x * 0.5 + rand(-0.3, 0.3), vy: -0.4, vz: this._camDir.z * 0.5 + rand(-0.3, 0.3),
+      spinX: rand(-6, 6), spinZ: rand(-6, 6), life: 4.5, bounces: 0, landed: false, sound: "magdrop",
+    });
   }
 
   _finishReload() {
@@ -363,7 +383,7 @@ export class Game {
         if (s.vy < -0.4 && s.bounces < 3) {
           s.vy *= -0.4; s.vx *= 0.55; s.vz *= 0.55; s.spinX *= 0.5; s.spinZ *= 0.5;
           s.bounces++;
-          if (!s.landed) this.sfx.play("shell"); // clink of the empty shell hitting the floor
+          if (!s.landed) this.sfx.play(s.sound || "shell"); // clink / thud on hitting the floor
         } else { s.vy = 0; s.vx *= 0.7; s.vz *= 0.7; s.landed = true; }
       }
       s.mesh.position.set(s.x, s.y, s.z);
@@ -753,16 +773,26 @@ export class Game {
       blade.position.set(0, 0, -0.35);
       const grip = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.18), mat);
       g.add(blade, grip);
+      this._vmSlide = this._vmMag = null;
     } else {
-      const body = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.14, 0.5), mat);
+      const body = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.5), mat);
       body.position.set(0, 0, -0.25);
+      // Slide sits on top and racks back during reload / firing.
+      const slide = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.06, 0.46), new THREE.MeshStandardMaterial({ color: 0x2c3136, roughness: 0.5, metalness: 0.55 }));
+      slide.position.set(0, 0.07, -0.24);
       const barrel = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, wp.explosive ? 0.8 : 0.4, 8), mat);
       barrel.rotation.x = Math.PI / 2;
       barrel.position.set(0, 0.02, -0.5 - (wp.explosive ? 0.2 : 0));
       if (wp.explosive) { barrel.scale.set(2.4, 1, 2.4); }
-      const grip = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.18, 0.1), mat);
-      grip.position.set(0, -0.14, -0.08);
-      g.add(body, barrel, grip);
+      const grip = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.2, 0.11), mat);
+      grip.position.set(0, -0.15, -0.06);
+      grip.rotation.x = 0.18;
+      // Magazine seated in the grip; drops out on reload.
+      const mag = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.19, 0.09), new THREE.MeshStandardMaterial({ color: 0x1a1d20, roughness: 0.7, metalness: 0.3 }));
+      mag.position.set(0, -0.16, -0.05);
+      g.add(body, slide, barrel, grip, mag);
+      this._vmSlide = slide; this._slideBaseZ = slide.position.z;
+      this._vmMag = mag; this._magBaseY = mag.position.y;
     }
     // Muzzle flash sprite at the barrel tip (hidden until a shot fires).
     if (!wp.melee) {
@@ -790,8 +820,37 @@ export class Game {
     this._vmKick = (this._vmKick || 0) * Math.exp(-12 * dt);
     this._vmKickRot = (this._vmKickRot || 0) * Math.exp(-11 * dt);
     const sway = Math.sin(this.player.bob) * 0.01 * this.player.bobAmt;
-    this._vm.position.set(0.28 + sway, -0.26 + Math.abs(sway) * 0.5, -0.55 + this._vmKick);
-    this._vm.rotation.set(-this._vmKickRot, -0.05, 0); // muzzle rises with recoil
+
+    const reloading = this.reloading > 0 && this._reloadTotal > 0;
+    const p = reloading ? clamp(1 - this.reloading / this._reloadTotal, 0, 1) : 0;
+
+    // Base pose (+ recoil), dipping and tilting into view while reloading.
+    const dip = reloading ? Math.sin(p * Math.PI) * 0.12 : 0;
+    const tilt = reloading ? Math.sin(p * Math.PI) * 0.5 : 0;
+    this._vm.position.set(0.28 + sway, -0.26 + Math.abs(sway) * 0.5 - dip, -0.55 + this._vmKick);
+    this._vm.rotation.set(-this._vmKickRot, -0.05, tilt);
+
+    // Magazine drops out early, a fresh one seats around the middle.
+    if (this._vmMag) {
+      if (reloading) {
+        let drop = 0, vis = true;
+        if (p < 0.35) drop = p / 0.35;                     // pulled out, falling
+        else if (p < 0.55) { drop = 1; vis = false; }      // empty grip
+        else if (p < 0.78) drop = 1 - (p - 0.55) / 0.23;   // new mag slides up
+        this._vmMag.visible = vis;
+        this._vmMag.position.y = this._magBaseY - drop * 0.42;
+      } else {
+        this._vmMag.visible = true;
+        this._vmMag.position.y = this._magBaseY;
+      }
+    }
+    // Slide racks back at the end of the reload (and nudges when firing).
+    if (this._vmSlide) {
+      let back = reloading && p > 0.8 ? Math.sin((p - 0.8) / 0.2 * Math.PI) : 0;
+      back = Math.max(back, this._vmKick * 0.5);
+      this._vmSlide.position.z = this._slideBaseZ + back * 0.12;
+    }
+
     if (this._flashMesh && this._flashMesh.visible) {
       this._flashT -= dt;
       this._flashMesh.material.opacity = Math.max(0, this._flashT / 0.05) * 0.9;
@@ -825,6 +884,7 @@ export class Game {
       owned: WEAPON_ORDER.filter((id) => this.loadout.owned[id]),
       current: this.loadout.current,
       reloading: this.reloading > 0,
+      reloadProgress: this.reloading > 0 && this._reloadTotal ? clamp(1 - this.reloading / this._reloadTotal, 0, 1) : 0,
     });
   }
 

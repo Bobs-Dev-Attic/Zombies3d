@@ -43,6 +43,11 @@ try {
       const ammo = $("ammo-count");
       ammo.textContent = s.ammo;
       ammo.classList.toggle("low", !!s.lowAmmo);
+      const ring = $("reload-ring");
+      if (ring) {
+        ring.classList.toggle("hidden", !s.reloading);
+        if (s.reloading) ring.style.setProperty("--p", (s.reloadProgress || 0).toFixed(3));
+      }
       updateWeaponBar(s);
     },
     onPause: (p) => { p ? show("pause") : hideOverlays(); },

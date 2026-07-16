@@ -82,6 +82,7 @@ export class SFX {
       case "reload": this._tone("square", 200, null, 0.03, 0.18, t); this._noise(0.05, 0.14, t + 0.07, "bandpass", 2000, 2, null); break;
       case "click":  this._noise(0.03, 0.14, t, "highpass", 3000, 1, null); break;
       case "shell":  this._tone("triangle", 2400 + Math.random() * 900, 1500, 0.045, 0.06, t); this._noise(0.03, 0.05, t, "highpass", 5200, 1, null); break; // brass tink
+      case "magdrop":this._tone("square", 240, 110, 0.07, 0.14, t); this._noise(0.06, 0.11, t, "lowpass", 850, 1, null); break; // magazine thud
       case "ui":     this._tone("square", 440, 660, 0.08, 0.2, t); break;
       case "wave":   this._tone("sawtooth", 160, 320, 0.5, 0.16, t); this._tone("sine", 320, 480, 0.5, 0.12, t + 0.05); break;
       case "clear":  this._tone("square", 523, 784, 0.14, 0.2, t); this._tone("square", 784, 1046, 0.2, 0.2, t + 0.12); break;

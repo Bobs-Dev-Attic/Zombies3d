@@ -67,6 +67,24 @@ html, body {
   transition: opacity 0.35s ease-out;
 }
 
+/* Reload cycle indicator — a ring that fills as the reload completes. */
+#reload-ring {
+  position: fixed; left: 50%; top: 58%; transform: translate(-50%, -50%);
+  width: 62px; height: 62px; z-index: 22; pointer-events: none;
+  display: flex; align-items: center; justify-content: center;
+}
+#reload-ring .reload-track {
+  position: absolute; inset: 0; border-radius: 50%;
+  background: conic-gradient(var(--accent) calc(var(--p, 0) * 1turn), rgba(255,255,255,0.14) 0);
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+          mask: radial-gradient(farthest-side, transparent calc(100% - 5px), #000 calc(100% - 4px));
+  filter: drop-shadow(0 0 4px rgba(0,0,0,0.7));
+}
+#reload-ring .reload-label {
+  font-size: 9px; font-weight: 800; letter-spacing: 1px; color: var(--accent);
+  text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+}
+
 /* ---------------- HUD ---------------- */
 #hud { position: fixed; inset: 0; pointer-events: none; z-index: 10; font-size: 13px; }
 
