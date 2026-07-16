@@ -4,6 +4,18 @@ All notable changes to **Zombies 3D: Escape the Horde**. The in-game
 **Menu → Changelog** is generated from [`src/version.js`](./src/version.js);
 keep the two in sync.
 
+## v0.4.0 — Hit the Deck (2026-07-16)
+
+- Zombies react to gunfire with procedural physics — the struck spot flinches (a
+  headshot snaps the head back, a body or leg hit kicks that limb out), the
+  torso staggers backward, and heavier weapons shove them harder.
+- Death ragdolls — instead of stiffly sinking, the dead crumple under gravity
+  along the bullet's impulse: they topple onto their backs, their limbs flop
+  limp, and they tumble and slide to rest before fading.
+- More lifelike walk — the pelvis bobs and the hips sway with each step, they
+  lean into their stride, knees bend through the swing with the ankles rolling,
+  the head bobs, and the arms counter-swing against the legs.
+
 ## v0.3.0 — The Ragged Horde (2026-07-16)
 
 - Animated reloads — the magazine drops from the grip and tumbles to the floor
