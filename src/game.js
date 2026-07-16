@@ -51,13 +51,15 @@ export class Game {
     this.particles = [];
     this.projectiles = [];
     this.pickups = [];
+    this.shells = [];
 
     this.raycaster = new THREE.Raycaster();
     this._camDir = new THREE.Vector3();
 
-    // Muzzle flash light attached to the camera.
-    this.muzzle = new THREE.PointLight(0xffcc66, 0, 10);
-    this.muzzle.position.set(0.25, -0.2, -0.6);
+    // Muzzle flash light attached to the camera. Distance + decay make it
+    // splash light onto nearby walls and zombies, fading off with distance.
+    this.muzzle = new THREE.PointLight(0xffd18a, 0, 18, 2.0);
+    this.muzzle.position.set(0.2, -0.14, -0.95);
     this.camera.add(this.muzzle);
     this.scene.add(this.camera);
     this.viewmodel = new THREE.Group();
@@ -149,6 +151,8 @@ export class Game {
     this.projectiles.length = 0;
     for (const pk of this.pickups) this.pickupGroup.remove(pk.mesh);
     this.pickups.length = 0;
+    for (const s of this.shells) this.fxGroup.remove(s.mesh);
+    this.shells.length = 0;
   }
 
   setPaused(p) {
@@ -295,19 +299,78 @@ export class Game {
 
     if (wp.melee) this._melee(wp);
     else if (wp.projectile) this._fireRocket(wp);
-    else this._fireHitscan(wp);
+    else { this._fireHitscan(wp); this._ejectShell(wp); }
 
     this._emitStats();
   }
 
   _recoil(wp) {
-    this.muzzle.intensity = wp.melee ? 0 : 3.2;
-    this._muzzleT = 0.05;
-    const kick = wp.explosive ? 0.14 : wp.melee ? 0.05 : 0.06 + (wp.damage / 900);
-    this._vmKick = kick;
-    // A touch of upward look-kick for punchy guns.
+    if (!wp.melee) {
+      // Flash brightness scales with the weapon; the point light splashes onto
+      // nearby surfaces and falls off with distance.
+      this.muzzle.intensity = wp.explosive ? 12 : Math.min(9, 3.5 + wp.damage / 13);
+      this._muzzleT = wp.explosive ? 0.09 : 0.05;
+      if (this._flashMesh) {
+        this._flashMesh.visible = true;
+        const spread = wp.explosive ? 2.2 : (wp.pellets > 1 ? 1.6 : 1);
+        this._flashMesh.scale.set(spread * rand(0.8, 1.3), rand(0.8, 1.5), spread * rand(0.8, 1.3));
+        this._flashMesh.rotation.z = rand(0, Math.PI);
+        this._flashT = 0.05;
+      }
+    }
+    // Positional kick back toward the eye + rotational muzzle rise.
+    this._vmKick = wp.explosive ? 0.16 : wp.melee ? 0.05 : 0.05 + (wp.damage / 800);
+    this._vmKickRot = wp.melee ? 0.08 : Math.min(0.5, 0.12 + wp.damage / 300);
     if (!wp.melee) this.player.pitch = clamp(this.player.pitch - (wp.knockback * 0.0009 + 0.004), -1.35, 1.35);
-    this.shake = Math.min(1, this.shake + (wp.explosive ? 0.9 : wp.melee ? 0.05 : 0.18));
+    this.shake = Math.min(1, this.shake + (wp.explosive ? 0.9 : wp.melee ? 0.05 : 0.14));
+  }
+
+  // Eject a spent brass casing to the right of the gun; it tumbles, bounces and
+  // clinks when it hits the ground. Only cartridge weapons eject.
+  _ejectShell(wp) {
+    this.camera.getWorldDirection(this._camDir);
+    const up = new THREE.Vector3(0, 1, 0);
+    const right = new THREE.Vector3().crossVectors(this._camDir, up).normalize();
+    const origin = this.player.position
+      .addScaledVector(right, 0.32)
+      .addScaledVector(this._camDir, 0.25)
+      .addScaledVector(up, -0.12);
+    this._shellGeo = this._shellGeo || new THREE.CylinderGeometry(0.028, 0.03, 0.11, 6);
+    this._shellMat = this._shellMat || new THREE.MeshStandardMaterial({ color: 0xcaa24a, metalness: 0.85, roughness: 0.35 });
+    const mesh = new THREE.Mesh(this._shellGeo, this._shellMat);
+    mesh.position.copy(origin);
+    mesh.rotation.set(rand(0, 6.28), rand(0, 6.28), rand(0, 6.28));
+    this.fxGroup.add(mesh);
+    this.shells.push({
+      mesh, x: origin.x, y: origin.y, z: origin.z,
+      vx: right.x * rand(2.2, 3.4) + this._camDir.x * rand(-1.2, -0.4),
+      vy: rand(2.6, 3.6),
+      vz: right.z * rand(2.2, 3.4) + this._camDir.z * rand(-1.2, -0.4),
+      spinX: rand(-14, 14), spinZ: rand(-14, 14),
+      life: 3.4, bounces: 0, landed: false,
+    });
+    if (this.shells.length > 40) { const old = this.shells.shift(); this.fxGroup.remove(old.mesh); }
+  }
+
+  _updateShells(dt) {
+    for (let i = this.shells.length - 1; i >= 0; i--) {
+      const s = this.shells[i];
+      s.life -= dt;
+      s.vy -= 20 * dt;
+      s.x += s.vx * dt; s.y += s.vy * dt; s.z += s.vz * dt;
+      if (s.y <= 0.05) {
+        s.y = 0.05;
+        if (s.vy < -0.4 && s.bounces < 3) {
+          s.vy *= -0.4; s.vx *= 0.55; s.vz *= 0.55; s.spinX *= 0.5; s.spinZ *= 0.5;
+          s.bounces++;
+          if (!s.landed) this.sfx.play("shell"); // clink of the empty shell hitting the floor
+        } else { s.vy = 0; s.vx *= 0.7; s.vz *= 0.7; s.landed = true; }
+      }
+      s.mesh.position.set(s.x, s.y, s.z);
+      if (!s.landed) { s.mesh.rotation.x += s.spinX * dt; s.mesh.rotation.z += s.spinZ * dt; }
+      if (s.life < 0.5) s.mesh.scale.setScalar(Math.max(0.02, s.life / 0.5));
+      if (s.life <= 0) { this.fxGroup.remove(s.mesh); this.shells.splice(i, 1); }
+    }
   }
 
   _melee(wp) {
@@ -701,8 +764,23 @@ export class Game {
       grip.position.set(0, -0.14, -0.08);
       g.add(body, barrel, grip);
     }
+    // Muzzle flash sprite at the barrel tip (hidden until a shot fires).
+    if (!wp.melee) {
+      const flash = new THREE.Mesh(
+        new THREE.ConeGeometry(0.09, 0.24, 6),
+        new THREE.MeshBasicMaterial({ color: 0xffe4a0, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending, depthWrite: false })
+      );
+      flash.rotation.x = -Math.PI / 2; // point the cone forward (-Z)
+      flash.position.set(0, 0.02, -0.72 - (wp.explosive ? 0.2 : 0));
+      flash.visible = false;
+      g.add(flash);
+      this._flashMesh = flash;
+    } else {
+      this._flashMesh = null;
+    }
+
     g.position.set(0.28, -0.26, -0.55);
-    g.rotation.y = -0.05;
+    g.rotation.set(0, -0.05, 0);
     this.viewmodel.add(g);
     this._vm = g;
   }
@@ -710,8 +788,15 @@ export class Game {
   _updateViewmodel(dt) {
     if (!this._vm) return;
     this._vmKick = (this._vmKick || 0) * Math.exp(-12 * dt);
+    this._vmKickRot = (this._vmKickRot || 0) * Math.exp(-11 * dt);
     const sway = Math.sin(this.player.bob) * 0.01 * this.player.bobAmt;
     this._vm.position.set(0.28 + sway, -0.26 + Math.abs(sway) * 0.5, -0.55 + this._vmKick);
+    this._vm.rotation.set(-this._vmKickRot, -0.05, 0); // muzzle rises with recoil
+    if (this._flashMesh && this._flashMesh.visible) {
+      this._flashT -= dt;
+      this._flashMesh.material.opacity = Math.max(0, this._flashT / 0.05) * 0.9;
+      if (this._flashT <= 0) this._flashMesh.visible = false;
+    }
   }
 
   // ---------------- HUD ----------------
@@ -817,6 +902,7 @@ export class Game {
     this._updateProjectiles(dt);
     this._updateParticles(dt);
     this._updateTracers(dt);
+    this._updateShells(dt);
     this._updatePickups(dt);
     this._updateViewmodel(dt);
     this._updateWaves(dt);

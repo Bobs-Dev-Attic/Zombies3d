@@ -1,7 +1,17 @@
 // Central version + changelog source. Update this on every release.
-export const VERSION = "0.1.1";
+export const VERSION = "0.2.0";
 
 export const CHANGELOG = [
+  {
+    version: "0.2.0",
+    date: "2026-07-16",
+    title: "Recoil & Brass",
+    changes: [
+      "Guns now punch: a bright muzzle flash flares at the barrel and throws light onto nearby walls and zombies, fading with distance; the weapon kicks back and the muzzle rises with each shot.",
+      "Spent shell casings eject and tumble from the gun, bounce on the ground, and clink as the empty brass lands — with a distinct metallic tink.",
+      "Zombies rebuilt with real anatomy — jointed hips, thighs, shins and feet, a pelvis and hunched chest, shoulders, upper arms, forearms and hands, plus a neck, rounded head and jaw. They walk with bending knees and swinging arms instead of stiff blocks.",
+    ],
+  },
   {
     version: "0.1.1",
     date: "2026-07-16",

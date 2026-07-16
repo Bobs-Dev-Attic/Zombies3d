@@ -4,6 +4,18 @@ All notable changes to **Zombies 3D: Escape the Horde**. The in-game
 **Menu → Changelog** is generated from [`src/version.js`](./src/version.js);
 keep the two in sync.
 
+## v0.2.0 — Recoil & Brass (2026-07-16)
+
+- Guns now punch: a bright muzzle flash flares at the barrel and throws light
+  onto nearby walls and zombies, fading with distance; the weapon kicks back and
+  the muzzle rises with each shot.
+- Spent shell casings eject and tumble from the gun, bounce on the ground, and
+  clink as the empty brass lands — with a distinct metallic tink.
+- Zombies rebuilt with real anatomy — jointed hips, thighs, shins and feet, a
+  pelvis and hunched chest, shoulders, upper arms, forearms and hands, plus a
+  neck, rounded head and jaw. They walk with bending knees and swinging arms
+  instead of stiff blocks.
+
 ## v0.1.1 — Straighten Up (2026-07-16)
 
 - Fixed reversed movement — the player's facing vector didn't match the camera,
