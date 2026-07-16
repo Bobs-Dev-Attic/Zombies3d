@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="96" fill="#0b0d0a"/>
+  <g>
+    <!-- zombie head -->
+    <circle cx="256" cy="238" r="150" fill="#5f7d4a"/>
+    <path d="M126 250 q130 60 260 0 v70 q-130 60 -260 0 z" fill="#4a6238"/>
+    <!-- eyes -->
+    <circle cx="205" cy="215" r="30" fill="#0b0d0a"/>
+    <circle cx="307" cy="215" r="30" fill="#0b0d0a"/>
+    <circle cx="212" cy="208" r="9" fill="#c9403b"/>
+    <circle cx="314" cy="208" r="9" fill="#c9403b"/>
+    <!-- stitched mouth -->
+    <path d="M186 312 h140" stroke="#0b0d0a" stroke-width="12" stroke-linecap="round"/>
+    <g stroke="#0b0d0a" stroke-width="8">
+      <path d="M206 300 v24"/><path d="M236 300 v24"/><path d="M266 300 v24"/><path d="M296 300 v24"/>
+    </g>
+    <!-- 3D depth badge -->
+    <text x="256" y="470" font-family="system-ui, sans-serif" font-size="70" font-weight="900" fill="#7dd35b" text-anchor="middle">3D</text>
+  </g>
+</svg>

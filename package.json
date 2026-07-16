@@ -1,0 +1,12 @@
+{
+  "name": "zombies3d-escape",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A first-person 3D zombie escape survival shooter (vanilla JS + Three.js, zero build).",
+  "type": "module",
+  "scripts": {
+    "dev": "npx serve .",
+    "start": "npx serve ."
+  },
+  "license": "MIT"
+}
