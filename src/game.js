@@ -213,8 +213,8 @@ export class Game {
         this.spawnQueue--;
         this.spawnTimer = clamp(1.1 - this.wave * 0.05, 0.35, 1.1);
       }
-    } else if (this.zombies.length === 0) {
-      // Wave cleared.
+    } else if (!this.zombies.some((z) => !z.dead)) {
+      // Wave cleared (corpses may still be settling; only living count).
       if (this.wave >= WAVES_PER_SETTING) {
         if (!this._exitReady) {
           this._exitReady = true;
@@ -563,22 +563,28 @@ export class Game {
 
   // Shared damage application + kill handling.
   _applyHit(z, dmg, headshot, kx, kz, y) {
-    const res = z.hurt(dmg, headshot, kx, kz);
+    const res = z.hurt(dmg, headshot, kx, kz, y);
     this._spawnParticles(z.x, y != null ? y : 1.2, z.z, 0x8a0f0f, headshot ? 10 : 5, headshot ? 7 : 5, 0.5, 9);
-    if (res.died) this._killZombie(z);
+    if (res.died) this._killZombie(z, kx, kz);
     return res;
   }
 
-  _killZombie(z) {
+  _killZombie(z, kx = 0, kz = 0) {
     this.kills++;
     this.score += z.cfg.score;
     this._spawnParticles(z.x, 1.0, z.z, 0x8a0f0f, 14, 8, 0.7, 9);
     this.sfx.play("groan");
-    // Fade the corpse into the ground, then remove.
-    z.model.userData.corpse = 0;
+    // Crumple into a ragdoll along the shot's impulse.
+    z.startRagdoll(kx, kz);
     this._corpses = this._corpses || [];
     this._corpses.push(z);
-    // Loot drop.
+    // Cap corpses so the ground doesn't fill up (drop the oldest).
+    while (this._corpses.length > 16) {
+      const old = this._corpses.shift();
+      old.dispose();
+      const idx = this.zombies.indexOf(old);
+      if (idx >= 0) this.zombies.splice(idx, 1);
+    }
     this._maybeDrop(z);
     this._emitStats();
   }
@@ -595,14 +601,16 @@ export class Game {
 
   _updateCorpses(dt) {
     if (!this._corpses) return;
+    const TTL = 7, FADE = 1;
     for (let i = this._corpses.length - 1; i >= 0; i--) {
       const z = this._corpses[i];
-      z.model.userData.corpse += dt;
-      const t = z.model.userData.corpse;
-      // Topple then sink.
-      z.model.rotation.z = Math.min(Math.PI / 2, t * 3);
-      z.model.position.y = -Math.max(0, (t - 1.2)) * 1.4;
-      if (t > 2.4) {
+      const t = z.ragdollStep(dt, this.world);
+      // Sink + shrink away over the last second of the corpse's life.
+      if (t > TTL - FADE) {
+        const f = Math.max(0, 1 - (t - (TTL - FADE)) / FADE);
+        z.model.scale.setScalar(z.cfg.scale * f);
+      }
+      if (t > TTL) {
         z.dispose();
         this._corpses.splice(i, 1);
         const idx = this.zombies.indexOf(z);
